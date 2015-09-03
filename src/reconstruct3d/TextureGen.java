@@ -16,12 +16,12 @@ import javax.swing.JComponent;
 
 public class TextureGen extends JComponent{
     
-    private float texture_width = 100;
+    private float texture_width = 100;  //rozmiary obrazów
     private float texture_height = 100;
     BufferedImage offImg;
     Color[] colorPalette;
     
-    public BufferedImage horizontalflip(BufferedImage img) {  
+    public BufferedImage horizontalflip(BufferedImage img) {  //obraca obraz horyzontalnie
         int w = img.getWidth();  
         int h = img.getHeight();  
         BufferedImage dimg = new BufferedImage(w, h, img.getType());  
@@ -81,14 +81,6 @@ public class TextureGen extends JComponent{
                     g2.setColor(Color.black);
                 else
                     g2.setColor(genColor(slices[i].sliceCells.get(j).id));
-//                if(slices[i].sliceCells.get(j).id == 2)
-//                    g2.setColor(Color.red);
-//                if(slices[i].sliceCells.get(j).id == 3)
-//                    g2.setColor(Color.green);
-//                if(slices[i].sliceCells.get(j).id == 4)
-//                    g2.setColor(Color.yellow);
-//                if(slices[i].sliceCells.get(j).id == 5)
-//                    g2.setColor(Color.pink);
                 
                 int x = slices[i].sliceCells.get(j).x;
                 int y = slices[i].sliceCells.get(j).y;

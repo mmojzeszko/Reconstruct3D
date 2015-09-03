@@ -16,7 +16,12 @@ public class Translator {
     Slice[] edges;
     ArrayList<Cell> blacks;
     int model_size = 100;
+    int img_size = 100;
     Cell[][][] sliceTab;
+    
+    Translator(int count){
+        this.model_size = count;
+    }
     
     void initSliceTab(){
         sliceTab = new Cell[model_size+1][model_size+1][model_size+1];
@@ -24,7 +29,6 @@ public class Translator {
             for(int y = 0; y < model_size+1; y++)
                 for(int x = 0; x < model_size+1; x++)
                     sliceTab[x][y][z] = new Cell(x, y, z, Color.white);
-                    //sliceTab[x][y][z].id = 0;
                 
         }
     }
@@ -39,7 +43,7 @@ public class Translator {
                 x = slices[i].sliceCells.get(j).x;
                 y = slices[i].sliceCells.get(j).y;
                 col = slices[i].sliceCells.get(j).color;
-                sliceTab[x][y][i] = new Cell(x, y, col); //!!!!!!!!!!!!!!!!!!!!!!!!!!
+                sliceTab[x][y][i] = new Cell(x, y, col);
             }
     }
     
@@ -55,14 +59,14 @@ public class Translator {
         return this.sliceTab;
     }
     
-    void convert(BufferedImage[] imgBuffer, int count){
-        slices = new Slice[count];  //establish data table for slices
+    void convert(BufferedImage[] imgBuffer, int count){ //konwertuje dane z obrazu na tablicę komórek
+        slices = new Slice[count];
         
         for(int z = 0; z < count; z++){
-            slices[z] = new Slice();    //initiate slices table
+            slices[z] = new Slice();
             
-            for(int y = 0; y < model_size; y++)
-                for(int x = 0; x < model_size; x++)
+            for(int y = 0; y < img_size; y++)
+                for(int x = 0; x < img_size; x++)
                     slices[z].sliceCells.add(new Cell(x, y, z, new Color(imgBuffer[z].getRGB(x, y)))) ;
                     //System.out.println(imgBuffer[z].getRGB(x, y));
             
@@ -70,45 +74,10 @@ public class Translator {
         initSliceTab();
         fillSliceTab(count);
         
+        detectSeeds(count);
         //detectEdges(count);
-        detectSeeds2(count);
         
         printSlices(count);
-    }
-    
-    void removeErr(int count){
-        //int id = 2;
-        
-        for(int z = 0; z < model_size; z++){
-            //id = 2;
-            for(int y = 0; y < model_size; y++)
-                for(int x = 1; x < model_size; x++){
-                        if(!sliceTab[x][y][z].color.equals(sliceTab[x+1][y][z].color))
-                            sliceTab[x][y][z].id = sliceTab[x-1][y][z].id;
-                        
-                        if(!sliceTab[x][y][z].color.equals(sliceTab[x-1][y][z].color))
-                            sliceTab[x][y][z].id = sliceTab[x+1][y][z].id;
-                }
-        }
-        
-        for(int z = 0; z < model_size; z++){
-            //id = 2;
-            for(int y = 1; y < model_size; y++)
-                for(int x = 0; x < model_size; x++){
-                        if(!sliceTab[x][y][z].color.equals(sliceTab[x][y+1][z].color))
-                            sliceTab[x][y][z].id = sliceTab[x][y-1][z].id;
-                        
-                        if(!sliceTab[x][y][z].color.equals(sliceTab[x][y-1][z].color))
-                            sliceTab[x][y][z].id = sliceTab[x][y+1][z].id;
-                }
-            
-            for(int x = 1; x < model_size; x++){
-                 if(!sliceTab[x][0][z].color.equals(sliceTab[x+1][0][z].color))
-                    sliceTab[x][0][z].id = sliceTab[x-1][0][z].id;
-            }
-            
-        }
-    
     }
     
     void detectBlacks(int count){
@@ -137,7 +106,7 @@ public class Translator {
         return nh_list;
     }
     
-    void detectSeeds2(int count){
+    void detectSeeds(int count){
         int id = 2;
         detectBlacks(count);
         ArrayList<Cell> to_check;
@@ -167,135 +136,6 @@ public class Translator {
             }
                 
         }
-    }
-    
-    void detectSeeds(int count){
-        int id = 2;
-        boolean change = false;
-        boolean phased = true;
-        
-        for(int z = 0; z < model_size; z++){
-            id = 2;
-            for(int y = 0; y < model_size; y++)
-                for(int x = 0; x < model_size; x++){
-                    change = false;
-                    if(sliceTab[x][y][z].id == 0){
-                        if(sliceTab[x+1][y][z].border != true && sliceTab[x+1][y][z].id != 0){
-                            sliceTab[x][y][z].id = sliceTab[x+1][y][z].id;
-                            change = true;
-                        }
-                        
-                        if(x > 0)
-                            if(sliceTab[x-1][y][z].border != true && sliceTab[x-1][y][z].id != 0){
-                                sliceTab[x][y][z].id = sliceTab[x-1][y][z].id;
-                                change = true;
-                            }
-                        
-                        if(sliceTab[x][y+1][z].border != true && sliceTab[x][y+1][z].id != 0){
-                            sliceTab[x][y][z].id = sliceTab[x][y+1][z].id;
-                            change = true;
-                        }
-                        
-                        if(y > 0)
-                            if(sliceTab[x][y-1][z].border != true && sliceTab[x][y-1][z].id != 0){
-                                sliceTab[x][y][z].id = sliceTab[x][y-1][z].id;
-                                change = true;
-                            }
-                        
-                        //corner fix
-                        if(x > 0 && y > 0){
-                            int n = 0;
-                            if(sliceTab[x-1][y][z].border == true && sliceTab[x][y-1][z].border == true){
-                                if(sliceTab[x+1][y-1][z].border != true){
-                                    sliceTab[x][y][z].id = sliceTab[x+1][y-1][z].id;
-                                    change = true;
-                                }
-                                
-//                                while(sliceTab[x+n][y-1][z].id == 1)
-//                                    n++;
-//                                
-//                                sliceTab[x][y][z].id = sliceTab[x+n][y-1][z].id;
-//                                change = true;
-                            }
-                        }
-                        
-                        
-                    }
-                    if(!change){
-                        if(sliceTab[x][y][z].border != true){
-                            if(phased)
-                                if(!sliceTab[x][y][z].color.equals(Color.white)){
-                                    sliceTab[x][y][z].id = id;
-                                    id++;
-                                }
-                        }
-                        //change = false;
-                    }
-                    
-                    //if(sliceTab[x][y][z].id == 1)
-                        //id++;
-                    
-                        
-                }
-            
-            
-            //for(int v = 0; v < id; v++)
-            //slices[z].seedCount = id;
-                
-    }
-        
-        //wrong seed fix
-        
-        for(int z = 0; z < model_size; z++)
-            for(int y = model_size-1; y > 0; y--)
-                for(int x = model_size-1; x > 0; x--){
-                    if(sliceTab[x][y][z].id != sliceTab[x-1][y][z].id && sliceTab[x][y][z].border != true && sliceTab[x-1][y][z].border != true)
-                        sliceTab[x-1][y][z].id = sliceTab[x][y][z].id;
-                    else
-                        if(sliceTab[x][y][z].id != sliceTab[x-1][y][z].id && sliceTab[x][y][z].border == true && sliceTab[x-1][y][z].border != true)
-                            sliceTab[x][y][z].id = sliceTab[x-1][y][z].id;
-                }
-                        
-        
-        //======================================================================
-           
-        for(int z = 0; z < model_size; z++)
-            for(int x = 0; x < model_size; x++)
-                for(int y = model_size-1; y >= 0; y--){
-                    if(sliceTab[x][y][z].id != sliceTab[x][y+1][z].id && sliceTab[x][y][z].border != true && sliceTab[x][y+1][z].border != true)
-                        sliceTab[x][y][z].id = sliceTab[x][y+1][z].id;
-                    else
-                        if(sliceTab[x][y][z].id != sliceTab[x][y+1][z].id && sliceTab[x][y][z].border != true && sliceTab[x][y+1][z].border == true)
-                            sliceTab[x][y+1][z].id = sliceTab[x][y][z].id;
-                }
-        
-        //======================================================================
-        
-        for(int z = 0; z < model_size; z++)
-            for(int y = 0; y < model_size; y++)
-                for(int x = 0; x < model_size-1; x++){
-                    if(x > 0)
-                        if(sliceTab[x][y][z].id != sliceTab[x-1][y][z].id && sliceTab[x][y][z].border != true && sliceTab[x-1][y][z].border != true)
-                            sliceTab[x-1][y][z].id = sliceTab[x][y][z].id;
-                    else
-                    if(sliceTab[x][y][z].id != sliceTab[x+1][y][z].id && sliceTab[x][y][z].border != true && sliceTab[x+1][y][z].border != true)
-                        sliceTab[x+1][y][z].id = sliceTab[x][y][z].id;
-                }
-        
-        //======================================================================
-        
-//        for(int z = 0; z < model_size; z++)
-//            for(int y = 1; y < model_size; y++)
-//                for(int x = 1; x < model_size-1; x++){
-//                    if(sliceTab[x][y][z].id == 1){
-//                        
-//                    }
-//                }
-        removeErr(count);
-        
-        for(int z = 0; z < count; z++)
-            for(int i = 0; i < slices[z].sliceCells.size(); i++)
-                slices[z].sliceCells.set(i, sliceTab[slices[z].sliceCells.get(i).x][slices[z].sliceCells.get(i).y][z]);
     }
     
     void detectEdges2(int count){

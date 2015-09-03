@@ -50,9 +50,26 @@ public class Sorter {
             
     }
     
-    void processEdges(){
-
+    void checkDir(Seed S1, Seed S2){
+        double min = 1000;
+        int iSearch = 0;
+        Cell temp;
         
+        for(int i = 0; i < S1.edgeCells.size() && i < S2.edgeCells.size(); i++){
+            min = 1000;
+            for(int j = 0; j < S2.edgeCells.size(); j++){
+                if(odlPkty(S1.edgeCells.get(i), S2.edgeCells.get(j)) < min){
+                    iSearch = j;
+                    min = odlPkty(S1.edgeCells.get(i), S2.edgeCells.get(j));
+                }
+                    
+            }
+            
+            temp = S2.edgeCells.get(i);
+            S2.edgeCells.set(i, S2.edgeCells.get(iSearch));
+            S2.edgeCells.set(iSearch, temp);
+            
+        }
         
     }
     

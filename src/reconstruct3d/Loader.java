@@ -37,11 +37,10 @@ public class Loader {
     }
     
     void load(){
-        count = new File("Splices/").listFiles().length;    //count how many splices
+        count = new File("Splices/").listFiles().length;    //ile przekrojów
         System.out.println("File count: " + count);
-        //System.out.println("Model size: " + model_size);
         
-        model = new File[count];   //prepare buffer for data receive
+        model = new File[count];
         model_img = new BufferedImage[count];
         temp = new BufferedImage[count];
         
@@ -50,18 +49,18 @@ public class Loader {
         
         //======================================================================
         
-        //sort numerically
+        //sortuje rosnąco
         Arrays.sort(f, new Comparator<File>() {
             @Override
             public int compare(File f1, File f2) {
                 try {
-                    String name = f1.getName();     //remove extension from filename
+                    String name = f1.getName();     //usuń rozszerzenie
                     int pos = name.lastIndexOf(".");
                     if (pos > 0) {
                         name = name.substring(0, pos);
                     }
                     
-                    String name2 = f2.getName();    //remove extension from filename
+                    String name2 = f2.getName();    //usuń rozszerzenie
                     int pos2 = name2.lastIndexOf(".");
                     if (pos2 > 0) {
                         name2 = name2.substring(0, pos2);
@@ -90,7 +89,7 @@ public class Loader {
     
     }
     
-    BufferedImage getScaledImage(BufferedImage srcImg, int w, int h){
+    BufferedImage getScaledImage(BufferedImage srcImg, int w, int h){   //skaluje i interpoluje obraz do zadanych rozmiarów
         
         BufferedImage resizedImg = new BufferedImage(w, h, BufferedImage.TYPE_BYTE_BINARY);
         Graphics2D g2 = resizedImg.createGraphics();
@@ -102,10 +101,7 @@ public class Loader {
         return resizedImg;
     }
     
-    void generateBitmaps(){
-        //BufferedImage []temp;
-        //temp = new BufferedImage[count];
-        
+    void generateBitmaps(){ //generuje tablicę wczytanych obrazów jako obiekt BufferedImage
         for(int i = 0; i < count; i++){
             try {
                 temp[i] = ImageIO.read(model[i]);
