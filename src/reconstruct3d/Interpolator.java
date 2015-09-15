@@ -1,11 +1,18 @@
 package reconstruct3d;
 
 import java.awt.Color;
+import java.awt.EventQueue;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.JProgressBar;
+import javax.swing.SwingUtilities;
 
 
 public class Interpolator {
@@ -13,12 +20,20 @@ public class Interpolator {
     Slice[] returnSlices;
     Slice[] interpolatedStruct; //zinterpolowana struktura
     PostSlice []managedSlice;   //obiekt postSlice, struktura danych ze zidentyfikowanymi ziarnami i należącymi do nich komórkami
-    int cubeSize = 100; //rozmiar przekroju (szerokość i wysokość)
+    int cubeSize = 170; //rozmiar przekroju (szerokość i wysokość)
     int interStr = 0;   //rozmiar struktury po interpolacji
     Cell[][] temporaryMap;
+    int interp = 0;
+    int t_num = 6;
     
-    Interpolator(Slice[] edges, Slice[] slices){
+    JProgressBar progress;
+    
+    Interpolator(Slice[] slices){
         this.slices = slices;
+    }
+    
+    void setProgress(JProgressBar progress){
+        this.progress = progress;
     }
     
     double odlPkty(Cell c1, Cell c2){   //odległość między dwoma komórkami
@@ -59,34 +74,52 @@ public class Interpolator {
         managedSlice = new PostSlice[count];
         boolean found = false;
         
-        for(int z = 0; z < count; z++){
+        ThreadPoolExecutor exec = (ThreadPoolExecutor) Executors.newFixedThreadPool(t_num);
+        
+        for(int z = 0; z < count; z++)
             managedSlice[z] = new PostSlice();
+        
+        for(int z = 0; z < count; z++){
+            //managedSlice[z] = new PostSlice();
             
-            for(int id = 0; id < slices[z].numberofseeds()+1; id++){
-
-                    Seed tmp = new Seed();
-
-                    for(int i = 0; i < slices[z].sliceCells.size(); i++)
-                        if(slices[z].sliceCells.get(i).id == id){   //jeżeli ma szukane id
-                            tmp.seedCells.add(slices[z].sliceCells.get(i));
-                            found = true;
-                        }
-
-                    if(found){
-                        managedSlice[z].sliceSeeds.add(tmp);    //dodaj komórkę do ziarna
-                        found = false;
-                    }
-                    
-            }
+            
+            exec.execute(new ParInterSeed(this, z));
+//            for(int id = 0; id < slices[z].numberofseeds()+1; id++){
+//
+//                    Seed tmp = new Seed();
+//
+//                    for(int i = 0; i < slices[z].sliceCells.size(); i++)
+//                        if(slices[z].sliceCells.get(i).id == id){   //jeżeli ma szukane id
+//                            tmp.seedCells.add(slices[z].sliceCells.get(i));
+//                            found = true;
+//                        }
+//
+//                    if(found){
+//                        managedSlice[z].sliceSeeds.add(tmp);    //dodaj komórkę do ziarna
+//                        found = false;
+//                    }
+//                    
+//            }
+            //exec.shutdown();
+        }
+        exec.shutdown();
+        
+        try {
+            exec.awaitTermination(5, TimeUnit.MINUTES);
+        } catch (InterruptedException ex) {
+            Logger.getLogger(Interpolator.class.getName()).log(Level.SEVERE, null, ex);
         }
         
-        for(int z = 0; z < count; z++)  //usuwa przypadkowo utworzone puste ziarna (zawierają mniej niż jedną komórkę)
-            for(int i = 0; i < managedSlice[z].sliceSeeds.size(); i++)
-                if(managedSlice[z].sliceSeeds.get(i).seedCells.size() < 1)
-                    managedSlice[z].sliceSeeds.remove(i);
+//        for(int z = 0; z < count; z++)  //usuwa przypadkowo utworzone puste ziarna (zawierają mniej niż jedną komórkę)
+//            for(int i = 0; i < managedSlice[z].sliceSeeds.size(); i++)
+//                if(managedSlice[z].sliceSeeds.get(i).seedCells.size() < 1)
+//                    managedSlice[z].sliceSeeds.remove(i);
         
+        System.out.println("Zakończono układanie ziaren");
         detectSeedEdges(count);
+        System.out.println("Zakończono wykrywanie krawędzi");
         sortEdges(count);
+        System.out.println("Zakończono sortowanie krawędzi");
     }
     
     void manageSeeds(int count){    //przepisuje odnalezione ziarna do nowej struktury, z rozróżnieniem ziaren
@@ -94,6 +127,7 @@ public class Interpolator {
         managedSlice = new PostSlice[count];
         
         for(int z = 0; z < count; z++){
+            System.out.println(z);
             managedSlice[z] = new PostSlice();
             for(int j = 0; j < slices[z].numberofseeds(); j++)
                 managedSlice[z].sliceSeeds.add(j, new Seed());
@@ -263,14 +297,15 @@ public class Interpolator {
     }
     
     void interpolate(int count){
-        int interp = 5;
+        interp = 5;
         interStr = count + (interp * (count-1));
         interpolatedStruct = new Slice[interStr];
         double step = 0;
-        PostSlice S1;
-        PostSlice S2;
+        PostSlice S1 = null;
+        PostSlice S2 = null;
         Seed Seed1;
         Seed Seed2 = new Seed();
+        Sorter sort = new Sorter();
         
         initFinalStruct(interStr);
         
@@ -288,37 +323,118 @@ public class Interpolator {
         for(int i = 0; i < count-1; i++){
             S1 = managedSlice[i];
             S2 = managedSlice[i+1];
-            //seedEdgePrep(count, S1, S2);
             
-            step = 1.0/interp;
-            for(int n = 0; n < interp; n++){
-                wag1 = 1 - ((double)n * step);
-                wag2 = (double)n * step;
-                
-                for(int edge = 0; edge < S1.sliceSeeds.size(); edge++){
+            for(int edge = 0; edge < S1.sliceSeeds.size(); edge++){
                     Seed1 = S1.sliceSeeds.get(edge);
                     
-                    for(int j = 0; j < S2.sliceSeeds.size(); j++)
-                        if(S2.sliceSeeds.get(j).id() == Seed1.id())
-                            Seed2 = S2.sliceSeeds.get(j);
-                    
-                    Sorter sort = new Sorter();
-                    sort.checkDir(Seed1, Seed2);
-                    
-                    if(Seed1.edgeCells.size() > 0 && Seed2.edgeCells.size() > 0){
-                        for(int finterp = 0; finterp < Seed1.edgeCells.size() && finterp < Seed2.edgeCells.size(); finterp++){
-                            int x = (int)((Seed1.edgeCells.get(finterp).x * wag1) + (Seed2.edgeCells.get(finterp).x * wag2));
-                            int y = (int)((Seed1.edgeCells.get(finterp).y * wag1) + (Seed2.edgeCells.get(finterp).y * wag2));
+                for(int j = 0; j < S2.sliceSeeds.size(); j++)
+                    if(S2.sliceSeeds.get(j).id() == Seed1.id())
+                        Seed2 = S2.sliceSeeds.get(j);
+                
+                sort.checkDir(Seed1, Seed2);
+            }
+        }
+        
+        ThreadPoolExecutor exec = (ThreadPoolExecutor) Executors.newFixedThreadPool(t_num);
+        
+        for(int i = 0; i < count-1; i++){
+            final int perc = i;
+            
+            exec.execute(new ParCount(this, i, progress));
+            SwingUtilities.invokeLater(new Runnable() {
 
-                            interpolatedStruct[i*interp+n+1+i].sliceCells.add(new Cell(x, y, Seed1.id()));
-                        }
-                    }
-                    
+                @Override
+                public void run() {
+                    progress.setValue(perc+1);
                 }
+            });
+            try {
+                java.lang.Thread.sleep(100);
+                //progress.setValue(i+1);
+//            S1 = managedSlice[i];
+//            S2 = managedSlice[i+1];
+//            //seedEdgePrep(count, S1, S2);
+//            
+//            step = 1.0/interp;
+//            for(int n = 0; n < interp; n++){
+//                wag1 = 1 - ((double)n * step);
+//                wag2 = (double)n * step;
+//                
+//                for(int edge = 0; edge < S1.sliceSeeds.size(); edge++){
+//                    Seed1 = S1.sliceSeeds.get(edge);
+//                    
+//                    for(int j = 0; j < S2.sliceSeeds.size(); j++)
+//                        if(S2.sliceSeeds.get(j).id() == Seed1.id())
+//                            Seed2 = S2.sliceSeeds.get(j);
+//                    
+//                    Sorter sort = new Sorter();
+//                    sort.checkDir(Seed1, Seed2);
+//                    
+//                    if(Seed1.edgeCells.size() > 0 && Seed2.edgeCells.size() > 0){
+//                        for(int finterp = 0; finterp < Seed1.edgeCells.size() && finterp < Seed2.edgeCells.size(); finterp++){
+//                            int x = (int)((Seed1.edgeCells.get(finterp).x * wag1) + (Seed2.edgeCells.get(finterp).x * wag2));
+//                            int y = (int)((Seed1.edgeCells.get(finterp).y * wag1) + (Seed2.edgeCells.get(finterp).y * wag2));
+//
+//                            interpolatedStruct[i*interp+n+1+i].sliceCells.add(new Cell(x, y, Seed1.id()));
+//                        }
+//                    }
+//                    
+//                }
+//            }
+            } catch (InterruptedException ex) {
+                Logger.getLogger(Interpolator.class.getName()).log(Level.SEVERE, null, ex);
             }
             
             
         }
+        exec.shutdown();
+        try {
+            //!!!
+            exec.awaitTermination(5, TimeUnit.MINUTES);
+        } catch (InterruptedException ex) {
+            Logger.getLogger(Interpolator.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
+    
+//    void countPar(int i){
+//        double step = 0;
+//            PostSlice S1 = managedSlice[i];
+//            PostSlice S2 = managedSlice[i+1];
+//            
+//            Seed Seed1 = new Seed();
+//            Seed Seed2 = new Seed();
+//            
+//            double wag1 = 0;
+//            double wag2 = 0;
+//            //seedEdgePrep(count, S1, S2);
+//            
+//            step = 1.0/interp;
+//            for(int n = 0; n < interp; n++){
+//                wag1 = 1 - ((double)n * step);
+//                wag2 = (double)n * step;
+//                
+//                for(int edge = 0; edge < S1.sliceSeeds.size(); edge++){
+//                    Seed1 = S1.sliceSeeds.get(edge);
+//                    
+//                    for(int j = 0; j < S2.sliceSeeds.size(); j++)
+//                        if(S2.sliceSeeds.get(j).id() == Seed1.id())
+//                            Seed2 = S2.sliceSeeds.get(j);
+//                    
+//                    Sorter sort = new Sorter();
+//                    sort.checkDir(Seed1, Seed2);
+//                    
+//                    if(Seed1.edgeCells.size() > 0 && Seed2.edgeCells.size() > 0){
+//                        for(int finterp = 0; finterp < Seed1.edgeCells.size() && finterp < Seed2.edgeCells.size(); finterp++){
+//                            int x = (int)((Seed1.edgeCells.get(finterp).x * wag1) + (Seed2.edgeCells.get(finterp).x * wag2));
+//                            int y = (int)((Seed1.edgeCells.get(finterp).y * wag1) + (Seed2.edgeCells.get(finterp).y * wag2));
+//
+//                            interpolatedStruct[i*interp+n+1+i].sliceCells.add(new Cell(x, y, Seed1.id()));
+//                        }
+//                    }
+//                    
+//                }
+//            }
+//        
+//    }
     
 }

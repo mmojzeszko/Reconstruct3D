@@ -8,6 +8,9 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.Random;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
@@ -16,10 +19,15 @@ import javax.swing.JComponent;
 
 public class TextureGen extends JComponent{
     
-    private float texture_width = 100;  //rozmiary obrazów
-    private float texture_height = 100;
+    private float texture_width = 170;  //rozmiary obrazów
+    private float texture_height = 170;
     BufferedImage offImg;
     Color[] colorPalette;
+    int t_num = 4;
+    
+    void setColorPalette(Color []colorPalette){
+        this.colorPalette = colorPalette;
+    }
     
     public BufferedImage horizontalflip(BufferedImage img) {  //obraca obraz horyzontalnie
         int w = img.getWidth();  
@@ -70,30 +78,39 @@ public class TextureGen extends JComponent{
     }
     
     void generate(Slice[] slices, int count){
-        Graphics2D g2 = (Graphics2D)createCanvas();
+        //Graphics2D g2 = (Graphics2D)createCanvas();
         initColorPalette();
+        ThreadPoolExecutor exec = (ThreadPoolExecutor) Executors.newFixedThreadPool(t_num);
         
         for(int i = 0; i < count; i++){
-            for(int j = 0; j < slices[i].sliceCells.size(); j++){
-                if(slices[i].sliceCells.get(j).id == 0)
-                    g2.setColor(Color.white);
-                if(slices[i].sliceCells.get(j).id == 1)
-                    g2.setColor(Color.black);
-                else
-                    g2.setColor(genColor(slices[i].sliceCells.get(j).id));
-                
-                int x = slices[i].sliceCells.get(j).x;
-                int y = slices[i].sliceCells.get(j).y;
-                
-                g2.fillRect(x, y, 1, 1);
-            }
-            
-            File output = new File("Regen/VolumeSplices/"+""+i+".png");
-            try {
-                ImageIO.write(offImg, "png", output);
-            } catch (IOException ex) {
-                Logger.getLogger(TextureGen.class.getName()).log(Level.SEVERE, null, ex);
-            }
+            exec.execute(new ParTexGen(slices, colorPalette, i));
+//            for(int j = 0; j < slices[i].sliceCells.size(); j++){
+//                if(slices[i].sliceCells.get(j).id == 0)
+//                    g2.setColor(Color.white);
+//                if(slices[i].sliceCells.get(j).id == 1)
+//                    g2.setColor(Color.black);
+//                else
+//                    g2.setColor(genColor(slices[i].sliceCells.get(j).id));
+//                
+//                int x = slices[i].sliceCells.get(j).x;
+//                int y = slices[i].sliceCells.get(j).y;
+//                
+//                g2.fillRect(x, y, 1, 1);
+//            }
+//            
+//            File output = new File("Regen/VolumeSplices/"+""+i+".png");
+//            try {
+//                ImageIO.write(offImg, "png", output);
+//            } catch (IOException ex) {
+//                Logger.getLogger(TextureGen.class.getName()).log(Level.SEVERE, null, ex);
+//            }
+        }
+        exec.shutdown();
+        
+        try {
+            exec.awaitTermination(5, TimeUnit.MINUTES);
+        } catch (InterruptedException ex) {
+            Logger.getLogger(Interpolator.class.getName()).log(Level.SEVERE, null, ex);
         }
             
     

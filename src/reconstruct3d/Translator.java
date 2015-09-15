@@ -6,6 +6,8 @@ import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -15,8 +17,8 @@ public class Translator {
     Slice[] slices;
     Slice[] edges;
     ArrayList<Cell> blacks;
-    int model_size = 100;
-    int img_size = 100;
+    int model_size = 150;
+    int img_size = 170;
     Cell[][][] sliceTab;
     
     Translator(int count){
@@ -62,8 +64,11 @@ public class Translator {
     void convert(BufferedImage[] imgBuffer, int count){ //konwertuje dane z obrazu na tablicę komórek
         slices = new Slice[count];
         
+        //ThreadPoolExecutor exec = (ThreadPoolExecutor) Executors.newFixedThreadPool(8);
+        
         for(int z = 0; z < count; z++){
             slices[z] = new Slice();
+            //exec.execute(new ParTranslate(imgBuffer, slices, img_size, z));
             
             for(int y = 0; y < img_size; y++)
                 for(int x = 0; x < img_size; x++)
@@ -71,19 +76,24 @@ public class Translator {
                     //System.out.println(imgBuffer[z].getRGB(x, y));
             
         }
-        initSliceTab();
-        fillSliceTab(count);
+        
+        //exec.shutdown();
+        
+        System.out.println("Zakończono pierwszy etap konwersji.");
+        //initSliceTab();
+        //fillSliceTab(count);
         
         detectSeeds(count);
         //detectEdges(count);
         
-        printSlices(count);
+        //printSlices(count);
     }
     
     void detectBlacks(int count){
         blacks = new ArrayList<>();
         
         for(int z = 0; z < count; z++){
+            //System.out.println(z);
             //blacks[z] = new Slice();
             for (int i = 0; i < slices[z].sliceCells.size(); i++) {
                 if(slices[z].sliceCells.get(i).color.equals(Color.black)){ 
@@ -113,6 +123,7 @@ public class Translator {
         ArrayList<Cell> new_to_check;
         
         for(int z = 0; z < count; z++){
+            //System.out.println(z);
             while(!blacks.isEmpty()){
                 blacks.get(0).id = id;
                 to_check = near(blacks, blacks.get(0));

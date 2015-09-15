@@ -26,7 +26,7 @@ public class Loader {
     File []model;   //files used for model
     BufferedImage []model_img;
     BufferedImage []temp;
-    int size = 100;
+    int size = 170;
     
     int getFileNum(){
         return this.count;
