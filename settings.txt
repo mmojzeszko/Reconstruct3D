@@ -1,0 +1,9 @@
+2
+300
+300
+30
+23
+0.6
+true
+C:\Users\Mateusz\Documents\NetBeansProjects\Reconstruct3D\dump
+C:\Users\Mateusz\Documents\NetBeansProjects\Reconstruct3D\Regen\VolumeSplices

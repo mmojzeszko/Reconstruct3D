@@ -16,7 +16,7 @@ public class ParInterSeed implements Runnable{
 
     @Override
     public void run() {
-        for(int id = 0; id < inter.slices[z].numberofseeds()+1; id++){
+        for(int id = 0; id < inter.slices[z].maxId()+1; id++){
 
                     Seed tmp = new Seed();
 
@@ -28,7 +28,7 @@ public class ParInterSeed implements Runnable{
 
                     if(found){
                         synchronized(this){
-                        inter.managedSlice[z].sliceSeeds.add(tmp);    //dodaj komórkę do ziarna
+                        inter.managedSlice[z].sliceSeeds.add(tmp);    //dodaj ziarno do przekroju
                         }
                         found = false;
                         

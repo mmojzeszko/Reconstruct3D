@@ -6,7 +6,6 @@
 package reconstruct3d;
 
 import java.awt.Graphics2D;
-import java.awt.Image;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -36,15 +35,15 @@ public class Loader {
         return this.model_img;
     }
     
-    void load(){
-        count = new File("Splices/").listFiles().length;    //ile przekrojów
+    void load(String path){
+        count = new File(path).listFiles().length;    //ile przekrojów
         System.out.println("File count: " + count);
         
         model = new File[count];
         model_img = new BufferedImage[count];
         temp = new BufferedImage[count];
         
-        File directory = new File("Splices/");
+        File directory = new File(path);
         File[] f = directory.listFiles();
         
         //======================================================================
@@ -101,7 +100,22 @@ public class Loader {
         return resizedImg;
     }
     
-    void generateBitmaps(){ //generuje tablicę wczytanych obrazów jako obiekt BufferedImage
+    BufferedImage getScaledImageAnalize(BufferedImage srcImg, int w, int h){   //skaluje i interpoluje obraz do zadanych rozmiarów
+        
+        BufferedImage resizedImg = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2 = resizedImg.createGraphics();
+        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        g2.drawImage(srcImg, 0, 0, w, h, null);
+        g2.dispose();
+        
+        return resizedImg;
+    }
+    
+    void generateBitmaps(int sizex, int sizey, boolean analize){ //generuje tablicę wczytanych obrazów jako obiekt BufferedImage
+        
+        //Binarizer bin = new Binarizer();
+        
         for(int i = 0; i < count; i++){
             try {
                 temp[i] = ImageIO.read(model[i]);
@@ -111,13 +125,21 @@ public class Loader {
         }
         
         for(int i = 0; i < count; i++){
-            model_img[i] = getScaledImage(temp[i], size, size);
-            File output = new File(i + ".png");
-            try {
-                ImageIO.write(model_img[i], "png", output);
-            } catch (IOException ex) {
-                Logger.getLogger(Loader.class.getName()).log(Level.SEVERE, null, ex);
+            if(!analize){
+                //temp[i] = bin.binarize(temp[i]);
+                model_img[i] = getScaledImage(temp[i], sizex, sizey);
+//                File output = new File(i + ".png");
+//            
+//                try {
+//                    ImageIO.write(temp[i], "png", output);
+//                } catch (IOException ex) {
+//                    Logger.getLogger(Loader.class.getName()).log(Level.SEVERE, null, ex);
+//                }
+            
             }
+            else
+                model_img[i] = getScaledImageAnalize(temp[i], sizex, sizey);
+            
         }
         
     }

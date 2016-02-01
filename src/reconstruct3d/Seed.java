@@ -11,6 +11,28 @@ public class Seed {
     Cell center;
     boolean processed = false;
     
+    ArrayList<Integer> getSeedIds(){
+        ArrayList<Integer> ids = new ArrayList<>();
+        
+        for(int z = 0; z < edgeCells.size(); z++){
+            if(!ids.contains(edgeCells.get(z).seed_id) && edgeCells.get(z).seed_id != 0)
+                ids.add(edgeCells.get(z).seed_id);
+        }
+        
+        return ids;
+    }
+    
+    ArrayList<Cell> getById(int id){
+        ArrayList<Cell> retained = new ArrayList<Cell>();
+    
+        for(Cell c : edgeCells){
+            if(c.seed_id == id)
+                retained.add(c);
+        }
+        
+        return retained;
+    }
+    
     int id(){
         int id = 0;
         if(this.seedCells.size() > 0)
@@ -25,6 +47,14 @@ public class Seed {
         
         for(int i = 0; i < this.edgeCells.size(); i++)
             this.edgeCells.get(i).id = id;
+    }
+    
+    void setSeedId(int id){
+        for(int i = 0; i < this.seedCells.size(); i++)
+            this.seedCells.get(i).seed_id = id;
+        
+        for(int i = 0; i < this.edgeCells.size(); i++)
+            this.edgeCells.get(i).seed_id = id;
     }
     
     Cell Center(){
@@ -45,7 +75,7 @@ public class Seed {
         sum_x = sum_x/(this.edgeCells.size() + this.seedCells.size());    //center of weight
         sum_y = sum_y/(this.edgeCells.size() + this.seedCells.size());    //
         
-        center = new Cell((int)sum_x, (int)sum_y, Color.yellow);
+        center = new Cell((int)sum_x, (int)sum_y, this.edgeCells.get(0).z, this.edgeCells.get(0).id);
         
         
         return center;

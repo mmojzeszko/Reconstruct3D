@@ -1,6 +1,8 @@
 
 package reconstruct3d;
 
+import java.util.ArrayList;
+
 
 public class Sorter {
     Slice []slice;
@@ -31,6 +33,7 @@ public class Sorter {
         double min = 1000;
         int iSearch = 0;
         Cell temp;
+        ArrayList<Cell> bList = new ArrayList<>(sid.edgeCells);
         
         for(int i = 0 ; i < sid.edgeCells.size()-1; i++){
             min = 1000;
